@@ -1,0 +1,4 @@
+/target
+.log
+cdk.out
+node_modules

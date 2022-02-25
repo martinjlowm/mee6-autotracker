@@ -1,0 +1,36 @@
+{
+  "name": "autotracker",
+  "version": "1.0.0",
+  "description": "- Setup CI/CD - Expose secrets through env vars - Create CDK setup - Lambda + CW event / trigger + API gateway (unless we can invoke Lambda directly) - Move post logic to a Lambda deployed with a cron event - Move time tracking logic to its own handler and listen on webhook from API GW",
+  "main": "index.js",
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc -w",
+    "prepare": "husky install",
+    "test": "jest",
+    "cdk": "cdk"
+  },
+  "devDependencies": {
+    "@types/jest": "^26.0.10",
+    "@types/node": "10.17.27",
+    "aws-cdk": "2.14.0",
+    "husky": "^7.0.4",
+    "jest": "^26.4.2",
+    "lint-staged": "^12.3.4",
+    "prettier": "^2.5.1",
+    "rust.aws-cdk-lambda": "^0.3.0",
+    "ts-jest": "^26.2.0",
+    "ts-node": "^9.0.0",
+    "typescript": "~3.9.7"
+  },
+  "dependencies": {
+    "aws-cdk-lib": "2.14.0",
+    "constructs": "^10.0.0",
+    "source-map-support": "^0.5.16"
+  },
+  "author": "",
+  "license": "ISC",
+  "lint-staged": {
+    "**/*": "prettier --write --ignore-unknown"
+  }
+}

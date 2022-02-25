@@ -1,0 +1,40 @@
+[package]
+name = "autotracker"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "autotracker-adjust-hours"
+path = "src/entries/adjust-hours.rs"
+
+[[bin]]
+name = "autotracker-register-hours"
+path = "src/entries/register-hours.rs"
+
+[[bin]]
+name = "autotracker-slack-prompt"
+path = "src/entries/slack-prompt.rs"
+
+[lib]
+name = "lib"
+path = "src/lib.rs"
+
+[dependencies]
+serde = "1"
+serde_derive = "1"
+serde_json = "1"
+reqwest = { version = "0.11", features = ["json"] }
+tokio = { version = "1", features = ["full"] }
+lambda_runtime = "0.4"
+lazy_static = "1.4"
+bb_rust = { git = "https://github.com/BlackbirdHQ/bb_rust", rev = "be226d2ed5f1288c9896ba1065d444039a3818be", features = ["misc"] }
+log = "0.4.14"
+anyhow = "1"
+env_logger = "0.8.4"
+http = "0.2.6"
+jemallocator = { version = "0.4.1", package = "tikv-jemallocator" }
+aws-config = "0.6"
+aws-sdk-dynamodb = "0.6"
+aws_lambda_events = "0.6.1"
+serde_dynamo = { version = "3.0.0-alpha.4", features = ["aws-sdk-dynamodb+0_6"] }
+chrono = "0.4.19"
