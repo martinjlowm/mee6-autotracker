@@ -23,6 +23,7 @@ export class AutoTrackerStack extends Stack {
       tableName: 'autotracker-actions',
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
       timeToLiveAttribute: 'ttl',
+      stream: dynamodb.StreamViewType.OLD_IMAGE,
       partitionKey: {
         name: 'pk',
         type: dynamodb.AttributeType.STRING,
