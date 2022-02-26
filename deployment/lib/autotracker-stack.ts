@@ -51,7 +51,7 @@ export class AutoTrackerStack extends Stack {
 
     slackPrompt.addEnvironment('SLACK_TOKEN', slackToken.secretValue.toString());
 
-    const mondayThroughFriday = '1-5';
+    const mondayThroughFriday = '2-6';
     new events.Rule(this, 'trigger-schedule', {
       schedule: events.Schedule.cron({ hour: '9', minute: '0', weekDay: mondayThroughFriday }),
       targets: [new events_targets.LambdaFunction(slackPrompt)],
