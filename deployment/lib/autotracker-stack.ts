@@ -40,6 +40,7 @@ export class AutoTrackerStack extends Stack {
     const slackPrompt = new RustFunction(this, 'slack-prompt', {
       functionName: 'autotracker-slack-prompt',
       bin: 'autotracker-slack-prompt',
+      target: 'aarch64-unknown-linux-musl',
       description: 'Prompt for hours to key in in Harvest',
       architecture: lambda.Architecture.ARM_64,
       memorySize: 128,
@@ -60,6 +61,7 @@ export class AutoTrackerStack extends Stack {
       functionName: 'autotracker-adjust-hours',
       description: 'Adjust hours through webhook as clicked from Slack',
       bin: 'autotracker-adjust-hours',
+      target: 'aarch64-unknown-linux-musl',
       architecture: lambda.Architecture.ARM_64,
       memorySize: 128,
       timeout: Duration.seconds(10),
@@ -78,6 +80,7 @@ export class AutoTrackerStack extends Stack {
     const registerHours = new RustFunction(this, 'register-hours', {
       functionName: 'autotracker-register-hours',
       bin: 'autotracker-register-hours',
+      target: 'aarch64-unknown-linux-musl',
       description: 'Register hours',
       architecture: lambda.Architecture.ARM_64,
       memorySize: 128,
