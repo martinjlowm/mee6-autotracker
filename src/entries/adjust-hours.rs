@@ -27,6 +27,8 @@ async fn handler(event: ApiGatewayProxyRequest, _: lambda_runtime::Context) -> R
         .expression_attribute_names("#hours", "hours")
         .expression_attribute_values(":hours", AttributeValue::N("8".to_string()))
         .update_expression("SET #hours = :hours")
+        .expression_attribute_names("#pk", "pk")
+        .condition_expression("attribute_exists(#pk)")
         .send()
         .await?;
 
