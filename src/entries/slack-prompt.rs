@@ -202,6 +202,7 @@ async fn handler(_event: CloudWatchEvent, _: lambda_runtime::Context) -> Result<
 
     dynamodb
         .update_item()
+        .table_name("autotracker-actions")
         .key(
             "pk",
             AttributeValue::S(format!("timestamp|{}", now.date().to_string().as_str())),

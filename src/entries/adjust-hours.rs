@@ -18,6 +18,7 @@ async fn handler(event: ApiGatewayProxyRequest, _: lambda_runtime::Context) -> R
 
     dynamodb
         .update_item()
+        .table_name("autotracker-actions")
         .key(
             "pk",
             AttributeValue::S(format!("timestamp|{}", now.date().to_string().as_str())),
