@@ -13,3 +13,11 @@ adjusted to 0-6 hours, if 8 hours does not apply for that particular day.
 
 When the 8 hours is up, the record expires and fires yet another Lambda which
 registers the desired time in Harvest.
+
+** Deployment
+
+The infrastructure is defined with AWS CDK and deployed with:
+
+#+begin_src bash
+npx cdk deploy
+#+end_src
