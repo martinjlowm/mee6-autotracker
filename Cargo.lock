@@ -80,6 +80,7 @@ dependencies = [
  "serde_derive",
  "serde_dynamo",
  "serde_json",
+ "serde_urlencoded",
  "tikv-jemallocator",
  "tokio",
 ]

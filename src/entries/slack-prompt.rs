@@ -1,4 +1,5 @@
 use ::lib::services::dynamodb::dynamodb;
+use ::lib::types::slack::{SlackQuestion, Block, Element, Text, UsersList};
 use anyhow::Result;
 use aws_lambda_events::event::cloudwatch_events::CloudWatchEvent;
 use aws_sdk_dynamodb::model::AttributeValue;
@@ -8,108 +9,10 @@ use jemallocator::Jemalloc;
 use lambda_runtime::handler_fn;
 use lazy_static::lazy_static;
 use reqwest::header::CONTENT_TYPE;
-use serde_derive::{Deserialize, Serialize};
+use serde_json::Value;
 
 #[global_allocator]
 static GLOBAL: Jemalloc = Jemalloc;
-
-#[derive(Deserialize, Serialize, Debug)]
-struct Project {
-    id: i64,
-    name: String,
-}
-
-#[derive(Deserialize, Serialize, Debug)]
-struct Task {
-    id: i64,
-    name: String,
-}
-
-#[derive(Deserialize, Serialize, Debug)]
-struct User {
-    id: i64,
-    name: String,
-}
-
-#[derive(Deserialize, Serialize, Debug)]
-struct TimeEntry {
-    id: i64,
-    spent_date: String,
-    user: User,
-    project: Project,
-    task: Task,
-    // user_assignment: UserAssignment,
-    // task_assignment: TaskAssignment,
-    hours: f64,
-}
-
-#[derive(Deserialize, Serialize, Debug)]
-struct TimeEntriesResponse {
-    time_entries: Vec<TimeEntry>,
-}
-
-#[derive(Deserialize, Serialize)]
-struct Text {
-    r#type: String,
-    emoji: bool,
-    text: String,
-}
-
-#[derive(Deserialize, Serialize)]
-struct Element {
-    r#type: String,
-    text: Text,
-}
-
-#[derive(Deserialize, Serialize)]
-struct Field {
-    r#type: String,
-    text: String,
-}
-
-#[derive(Deserialize, Serialize)]
-struct Section {
-    r#type: String,
-    text: Text,
-}
-
-#[derive(Deserialize, Serialize)]
-struct Block {
-    r#type: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    text: Option<Text>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    elements: Option<Vec<Element>>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    fields: Option<Vec<Field>>,
-}
-
-#[derive(Deserialize, Serialize)]
-struct SlackQuestion {
-    channel: String,
-    // user: String,
-    // #[serde(skip_serializing_if = "Option::is_none")]
-    // as_user: Option<bool>,
-    text: String,
-    blocks: Vec<Block>,
-}
-
-#[derive(Deserialize, Serialize, Debug)]
-struct Profile {
-    display_name: String,
-    display_name_normalized: String,
-}
-
-#[derive(Deserialize, Serialize, Debug)]
-struct Member {
-    id: String,
-    profile: Profile,
-}
-
-#[derive(Deserialize, Serialize)]
-struct UsersList {
-    members: Vec<Member>,
-}
 
 lazy_static! {
     static ref SLACK: reqwest::Client = {
@@ -139,7 +42,7 @@ lazy_static! {
     };
 }
 
-async fn handler(_event: CloudWatchEvent, _: lambda_runtime::Context) -> Result<()> {
+async fn handler(_: Value, _: lambda_runtime::Context) -> Result<()> {
     let response: UsersList = SLACK
         .get("https://slack.com/api/users.list")
         .send()
@@ -166,13 +69,10 @@ async fn handler(_event: CloudWatchEvent, _: lambda_runtime::Context) -> Result<
                     emoji: false,
                     text: msg.into(),
                 }),
-                fields: None,
-                elements: None,
+                ..Default::default()
             },
             Block {
                 r#type: "actions".into(),
-                text: None,
-                fields: None,
                 elements: Some(
                     (0..8)
                         .step_by(2)
@@ -183,9 +83,11 @@ async fn handler(_event: CloudWatchEvent, _: lambda_runtime::Context) -> Result<
                                 emoji: false,
                                 text: i.to_string(),
                             },
+                            ..Default::default()
                         })
                         .collect(),
                 ),
+                ..Default::default()
             },
         ],
     };

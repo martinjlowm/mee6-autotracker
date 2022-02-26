@@ -37,3 +37,4 @@ aws-sdk-dynamodb = "0.6"
 aws_lambda_events = "0.6.1"
 serde_dynamo = { version = "3.0.0-alpha.4", features = ["aws-sdk-dynamodb+0_6"] }
 chrono = "0.4.19"
+serde_urlencoded = "0.7.1"
