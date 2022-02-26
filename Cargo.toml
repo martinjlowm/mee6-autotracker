@@ -23,14 +23,13 @@ path = "src/lib.rs"
 serde = "1"
 serde_derive = "1"
 serde_json = "1"
-reqwest = { version = "0.11", features = ["json"] }
+reqwest = { version = "0.11", default-features = false, features = ["rustls-tls", "json"] }
 tokio = { version = "1", features = ["full"] }
 lambda_runtime = "0.4"
 lazy_static = "1.4"
 bb_rust = { git = "https://github.com/BlackbirdHQ/bb_rust", rev = "be226d2ed5f1288c9896ba1065d444039a3818be", features = ["misc"] }
 log = "0.4.14"
 anyhow = "1"
-env_logger = "0.8.4"
 http = "0.2.6"
 jemallocator = { version = "0.4.1", package = "tikv-jemallocator" }
 aws-config = "0.6"
