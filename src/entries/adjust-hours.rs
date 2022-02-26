@@ -16,7 +16,7 @@ async fn handler(event: ApiGatewayProxyRequest, _: lambda_runtime::Context) -> R
 
     let now = Utc::now().naive_utc();
 
-    dynamodb
+    let response = dynamodb
         .update_item()
         .table_name("autotracker-actions")
         .key(
@@ -30,7 +30,39 @@ async fn handler(event: ApiGatewayProxyRequest, _: lambda_runtime::Context) -> R
         .expression_attribute_names("#pk", "pk")
         .condition_expression("attribute_exists(#pk)")
         .send()
-        .await?;
+        .await;
+
+    if let Err(sdk_err) = response {
+        use aws_sdk_dynamodb::SdkError::*;
+
+        match sdk_err {
+            ConstructionFailure(_) => todo!(),
+            TimeoutError(_) => todo!(),
+            DispatchFailure(_) => todo!(),
+            ResponseError {
+                err: _err,
+                raw: _raw,
+            } => todo!(),
+            ServiceError { err, raw: _raw } => {
+                use aws_sdk_dynamodb::error::UpdateItemErrorKind::*;
+
+                match err.kind {
+                    ConditionalCheckFailedException(_) => {
+                        log::info!("Conditional check failed - that's okay!");
+                    }
+                    InternalServerError(_) => todo!(),
+                    InvalidEndpointException(_) => todo!(),
+                    ItemCollectionSizeLimitExceededException(_) => todo!(),
+                    ProvisionedThroughputExceededException(_) => todo!(),
+                    RequestLimitExceeded(_) => todo!(),
+                    ResourceNotFoundException(_) => todo!(),
+                    TransactionConflictException(_) => todo!(),
+                    Unhandled(_) => todo!(),
+                    _ => todo!(),
+                }
+            }
+        }
+    }
 
     Ok(())
 }
