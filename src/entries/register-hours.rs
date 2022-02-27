@@ -1,61 +1,31 @@
-use std::collections::HashMap;
-
-use anyhow::Result;
-use aws_lambda_events::event::dynamodb::Event;
-use lazy_static::lazy_static;
-use lambda_runtime::handler_fn;
+use ::lib::types::harvest::{
+    CreateEntryRequest, CreateEntryResponse, MeResponse, ProjectAssignment,
+    ProjectAssignmentsResponse,
+};
+use anyhow::{Context, Result};
+use aws_lambda_events::event::dynamodb::{attributes::AttributeValue, Event};
+use chrono::{NaiveDate, NaiveDateTime, NaiveTime};
+use futures::future::join_all;
 use jemallocator::Jemalloc;
+use lambda_runtime::handler_fn;
+use lazy_static::lazy_static;
 use serde_derive::{Deserialize, Serialize};
-use serde_dynamo::from_item;
 
 #[global_allocator]
 static GLOBAL: Jemalloc = Jemalloc;
 
-#[derive(Deserialize, Serialize, Debug)]
-struct Project {
-    id: i64,
-    name: String,
-}
-
-#[derive(Deserialize, Serialize, Debug)]
-struct Task {
-    id: i64,
-    name: String,
-}
-
-#[derive(Deserialize, Serialize, Debug)]
-struct User {
-    id: i64,
-    name: String,
-}
-
-#[derive(Deserialize, Serialize, Debug)]
-struct TimeEntry {
-    id: i64,
-    spent_date: String,
-    user: User,
-    project: Project,
-    task: Task,
-    // user_assignment: UserAssignment,
-    // task_assignment: TaskAssignment,
-    hours: f64,
-}
-
-#[derive(Deserialize, Serialize, Debug)]
-struct TimeEntriesResponse {
-    time_entries: Vec<TimeEntry>,
-}
-
 #[derive(Deserialize, Serialize)]
-struct TTLItem {
+struct ActionItem {
     ttl: u64,
     hours: u64,
 }
 
 lazy_static! {
     static ref HARVEST: reqwest::Client = {
-        let account_id: String = std::env::var("HARVEST_ACCOUNT_ID").expect("HARVEST_ACCOUNT_ID is not set!");
-        let harvest_token: String = std::env::var("HARVEST_TOKEN").expect("HARVEST_TOKEN is not set!");
+        let account_id: String =
+            std::env::var("HARVEST_ACCOUNT_ID").expect("HARVEST_ACCOUNT_ID is not set!");
+        let harvest_token: String =
+            std::env::var("HARVEST_TOKEN").expect("HARVEST_TOKEN is not set!");
 
         let client_builder = reqwest::Client::builder();
 
@@ -65,7 +35,7 @@ lazy_static! {
             http::header::HeaderValue::from_str(
                 format!("Bearer {token}", token = &harvest_token).as_str(),
             )
-                .unwrap(),
+            .unwrap(),
         );
         headers.insert(
             "Harvest-Account-ID",
@@ -80,24 +50,106 @@ lazy_static! {
     };
 }
 
-async fn handler(event: Event, _: lambda_runtime::Context) -> Result<()> {
+async fn register_hours(
+    user_id: i64,
+    project_assignments: Vec<ProjectAssignment>,
+    timestamp: NaiveDateTime,
+    hours: f64,
+) -> Result<()> {
+    let project_assignment = project_assignments
+        .into_iter()
+        .find(|assignment| {
+            assignment
+                .project
+                .name
+                .eq_ignore_ascii_case("System2 Development Hours")
+        })
+        .with_context(|| "Failed to find project")?;
+
+    let task_assignment = project_assignment
+        .task_assignments
+        .into_iter()
+        .find(|assignment| assignment.task.name.eq_ignore_ascii_case("Development"))
+        .with_context(|| "Failed to find task")?;
+
+    let create_entry = CreateEntryRequest {
+        user_id: Some(user_id),
+        project_id: project_assignment.project.id,
+        task_id: task_assignment.task.id,
+        spent_date: timestamp,
+        hours: Some(hours),
+        notes: None,
+    };
+
+    let response: CreateEntryResponse = HARVEST
+        .post("https://api.harvestapp.com/v2/time_entries")
+        .json(&dbg!(create_entry))
+        .send()
+        .await?
+        .json()
+        .await?;
+
+    log::info!("Created time entry w. {:?}", response);
+
+    Ok(())
+}
+
+pub fn split_into_naive_datetime(field: &str) -> Option<NaiveDateTime> {
+    let timestamp = dbg!(field.split('|').nth(1))?.to_string();
+    NaiveDate::parse_from_str(timestamp.as_str(), "%Y-%m-%d")
+        .ok()
+        .map(|date| date.and_time(NaiveTime::from_hms(0, 0, 0)))
+}
+
+pub async fn handler(event: Event, _: lambda_runtime::Context) -> Result<()> {
     dbg!(event.clone());
 
-    let removed_items: Vec<HashMap<_,_>> = event.records.into_iter().filter_map(|record| {
+    let removed_items = event.records.into_iter().filter_map(|record| {
         if !record.event_name.eq_ignore_ascii_case("REMOVE") {
             return None;
         }
 
-        Some(record.change.old_image)
-    }).collect();
+        let image = record.change.old_image;
+        let timestamp = match image.get("pk").with_context(|| "Item had no pk field") {
+            Ok(AttributeValue::String(value)) => Some(split_into_naive_datetime(value)?),
+            _ => None,
+        }?;
 
+        let hours = match image
+            .get("hours")
+            .with_context(|| "Item had no hours field")
+        {
+            Ok(AttributeValue::String(value)) => Some(value.clone()),
+            _ => None,
+        }?;
 
-    // let response = HARVEST
-    //     .get("https://api.harvestapp.com/v2/time_entries")
-    //     .send()
-    //     .await?
-    //     .json::<TimeEntriesResponse>()
-    //     .await?;
+        Some((timestamp, hours.parse::<f64>().ok()?))
+    });
+
+    let MeResponse { id: user_id, .. } = HARVEST
+        .get("https://api.harvestapp.com/v2/users/me")
+        .send()
+        .await?
+        .json()
+        .await?;
+
+    let ProjectAssignmentsResponse {
+        project_assignments,
+    } = HARVEST
+        .get("https://api.harvestapp.com/v2/users/me/project_assignments")
+        .send()
+        .await?
+        .json()
+        .await?;
+
+    join_all(removed_items.map(|(timestamp, hours)| {
+        let assignments = project_assignments.clone();
+        async move { register_hours(user_id, assignments, timestamp, hours).await }
+    }))
+    .await;
+
+    log::info!("Registered hours");
+
     Ok(())
 }
 
@@ -110,5 +162,43 @@ async fn main() {
     if let Err(err) = res {
         log::error!("{:?}", err);
         std::process::exit(1);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{register_hours, split_into_naive_datetime, HARVEST};
+    use ::lib::types::harvest::{MeResponse, ProjectAssignmentsResponse};
+
+    #[tokio::test]
+    async fn test_response_parsing() {
+        dotenv::dotenv().ok();
+
+        let MeResponse { id: user_id, .. } = HARVEST
+            .get("https://api.harvestapp.com/v2/users/me")
+            .send()
+            .await
+            .unwrap()
+            .json()
+            .await
+            .unwrap();
+
+        let ProjectAssignmentsResponse {
+            project_assignments,
+        } = HARVEST
+            .get("https://api.harvestapp.com/v2/users/me/project_assignments")
+            .send()
+            .await
+            .unwrap()
+            .json()
+            .await
+            .unwrap();
+
+        let timestamp = split_into_naive_datetime("timestamp|2022-02-27").unwrap();
+        let hours = 2.0;
+        match register_hours(user_id, project_assignments, timestamp, hours).await {
+            Ok(_) => (),
+            Err(e) => panic!("{:?}", e),
+        }
     }
 }

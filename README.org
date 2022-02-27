@@ -8,8 +8,9 @@ unrelated to https://mee6.xyz/.
 
 There's a daily CloudWatch rule that triggers a Slack prompt at 9 UTC every
 morning Mon-Fri and schedules a registration event to be processed 8 hours later
-(roughly). During this time, interacting with MEE6 in Slack, this event can be
-adjusted to 0-6 hours, if 8 hours does not apply for that particular day.
+(when DynamoDB feels like it). During this time, interacting with MEE6 in Slack,
+this event can be adjusted to 0-6 hours, if 8 hours does not apply for that
+particular day.
 
 When the 8 hours is up, the record expires and fires yet another Lambda which
 registers the desired time in Harvest.
