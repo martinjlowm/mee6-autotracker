@@ -1,7 +1,7 @@
 {
   "name": "autotracker",
   "version": "1.0.0",
-  "description": "- Setup CI/CD - Expose secrets through env vars - Create CDK setup - Lambda + CW event / trigger + API gateway (unless we can invoke Lambda directly) - Move post logic to a Lambda deployed with a cron event - Move time tracking logic to its own handler and listen on webhook from API GW",
+  "description": "",
   "main": "index.js",
   "scripts": {
     "build": "tsc",
