@@ -1,7 +1,6 @@
 use ::lib::services::dynamodb::{dynamodb, TABLE_NAME};
 use ::lib::types::slack::{Block, Element, SlackQuestion, Text, UsersList};
 use anyhow::Result;
-use aws_lambda_events::event::cloudwatch_events::CloudWatchEvent;
 use aws_sdk_dynamodb::model::AttributeValue;
 use chrono::prelude::Utc;
 use chrono::Duration;

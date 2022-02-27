@@ -39,7 +39,7 @@ lazy_static! {
         );
         headers.insert(
             "Harvest-Account-ID",
-            http::header::HeaderValue::from_str(format!("{id}", id = account_id).as_str()).unwrap(),
+            http::header::HeaderValue::from_str(&account_id).unwrap(),
         );
 
         client_builder
@@ -117,7 +117,7 @@ pub async fn handler(event: Event, _: lambda_runtime::Context) -> Result<()> {
             .get("hours")
             .with_context(|| "Item had no hours field")
         {
-            Ok(AttributeValue::Number(value)) => Some(value.clone()),
+            Ok(AttributeValue::Number(value)) => Some(*value),
             _ => None,
         }?;
 
