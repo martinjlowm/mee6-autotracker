@@ -5,7 +5,7 @@ use ::lib::types::harvest::{
 use anyhow::{Context, Result};
 use aws_lambda_events::event::dynamodb::{attributes::AttributeValue, Event};
 use chrono::{NaiveDate, NaiveDateTime, NaiveTime};
-use futures::future::join_all;
+use futures::{future::join_all, stream::FuturesUnordered};
 use jemallocator::Jemalloc;
 use lambda_runtime::handler_fn;
 use lazy_static::lazy_static;
@@ -83,7 +83,7 @@ async fn register_hours(
 
     let response: CreateEntryResponse = HARVEST
         .post("https://api.harvestapp.com/v2/time_entries")
-        .json(&dbg!(create_entry))
+        .json(&create_entry)
         .send()
         .await?
         .json()
@@ -117,11 +117,11 @@ pub async fn handler(event: Event, _: lambda_runtime::Context) -> Result<()> {
             .get("hours")
             .with_context(|| "Item had no hours field")
         {
-            Ok(AttributeValue::String(value)) => Some(value.clone()),
+            Ok(AttributeValue::Number(value)) => Some(value.clone()),
             _ => None,
         }?;
 
-        Some((timestamp, hours.parse::<f64>().ok()?))
+        Some((timestamp, hours))
     });
 
     let MeResponse { id: user_id, .. } = HARVEST
@@ -140,13 +140,19 @@ pub async fn handler(event: Event, _: lambda_runtime::Context) -> Result<()> {
         .json()
         .await?;
 
-    join_all(removed_items.map(|(timestamp, hours)| {
-        let assignments = project_assignments.clone();
-        async move { register_hours(user_id, assignments, timestamp, hours).await }
-    }))
+    let result = join_all(
+        removed_items
+            .map(move |(timestamp, hours)| {
+                let assignments = project_assignments.clone();
+                Box::pin(
+                    async move { register_hours(user_id, assignments, timestamp, hours).await },
+                )
+            })
+            .collect::<FuturesUnordered<_>>(),
+    )
     .await;
 
-    log::info!("Registered hours");
+    log::info!("Registered hours for {} entries", result.len());
 
     Ok(())
 }
@@ -193,7 +199,8 @@ mod tests {
             .unwrap();
 
         let timestamp = split_into_naive_datetime("timestamp|2022-02-27").unwrap();
-        let hours = 2.0;
+        let hours = "2".parse::<f64>().ok().unwrap();
+
         match register_hours(user_id, project_assignments, timestamp, hours).await {
             Ok(_) => (),
             Err(e) => panic!("{:?}", e),
