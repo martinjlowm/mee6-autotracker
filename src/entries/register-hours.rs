@@ -95,15 +95,13 @@ async fn register_hours(
 }
 
 pub fn split_into_naive_datetime(field: &str) -> Option<NaiveDateTime> {
-    let timestamp = dbg!(field.split('|').nth(1))?.to_string();
+    let timestamp = field.split('|').nth(1)?.to_string();
     NaiveDate::parse_from_str(timestamp.as_str(), "%Y-%m-%d")
         .ok()
         .map(|date| date.and_time(NaiveTime::from_hms(0, 0, 0)))
 }
 
 pub async fn handler(event: Event, _: lambda_runtime::Context) -> Result<()> {
-    dbg!(event.clone());
-
     let removed_items = event.records.into_iter().filter_map(|record| {
         if !record.event_name.eq_ignore_ascii_case("REMOVE") {
             return None;
