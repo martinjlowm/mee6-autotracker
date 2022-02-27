@@ -1,11 +1,12 @@
 use ::lib::services::dynamodb::{dynamodb, TABLE_NAME};
 use ::lib::types::slack::Response;
 use anyhow::{anyhow, Context, Result};
-use aws_lambda_events::event::apigw::ApiGatewayProxyRequest;
+use aws_lambda_events::event::apigw::{ApiGatewayProxyRequest, ApiGatewayProxyResponse};
 use aws_sdk_dynamodb::model::AttributeValue;
 use chrono::prelude::{NaiveDateTime, Utc};
 use chrono::Duration;
 use hmac::{Hmac, Mac};
+use http::HeaderMap;
 use jemallocator::Jemalloc;
 use lambda_runtime::handler_fn;
 use lazy_static::lazy_static;
@@ -58,7 +59,10 @@ fn parse_slack_payload(body: &str) -> Result<Response> {
     Ok(serde_json::from_str(payload.as_str())?)
 }
 
-async fn handler(event: ApiGatewayProxyRequest, _: lambda_runtime::Context) -> Result<()> {
+async fn handler(
+    event: ApiGatewayProxyRequest,
+    _: lambda_runtime::Context,
+) -> Result<ApiGatewayProxyResponse> {
     let request_timestamp = event
         .headers
         .get("x-slack-request-timestamp")
@@ -148,7 +152,15 @@ async fn handler(event: ApiGatewayProxyRequest, _: lambda_runtime::Context) -> R
         }
     }
 
-    Ok(())
+    let headers = HeaderMap::new();
+
+    Ok(ApiGatewayProxyResponse {
+        status_code: 200,
+        headers: headers.clone(),
+        multi_value_headers: headers,
+        body: None,
+        is_base64_encoded: None,
+    })
 }
 
 #[tokio::main]
