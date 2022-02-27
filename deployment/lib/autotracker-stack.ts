@@ -35,6 +35,7 @@ export class AutoTrackerStack extends Stack {
     });
 
     const slackToken = new sm.Secret(this, 'slack-token');
+    const slackSigningSecret = new sm.Secret(this, 'slack-signing-secret');
     const harvestToken = new sm.Secret(this, 'harvest-token');
 
     const slackPrompt = new RustFunction(this, 'slack-prompt', {
@@ -66,6 +67,7 @@ export class AutoTrackerStack extends Stack {
       memorySize: 128,
       timeout: Duration.seconds(10),
     });
+    adjustHours.addEnvironment('SLACK_SIGNING_SECRET', slackSigningSecret.secretValue.toString());
 
     actionsTable.grantReadWriteData(adjustHours);
 
@@ -73,9 +75,7 @@ export class AutoTrackerStack extends Stack {
 
     const autoTrackerResource = api.root.addResource('auto-tracker');
     const adjustHoursResource = autoTrackerResource.addResource('adjust-hours');
-    adjustHoursResource.addMethod('POST', new LambdaIntegration(adjustHours), { apiKeyRequired: true });
-
-    api.addApiKey('slack-webhook-key');
+    adjustHoursResource.addMethod('POST', new LambdaIntegration(adjustHours));
 
     const registerHours = new RustFunction(this, 'register-hours', {
       functionName: 'autotracker-register-hours',
