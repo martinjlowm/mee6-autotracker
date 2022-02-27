@@ -1,4 +1,4 @@
-use ::lib::services::dynamodb::dynamodb;
+use ::lib::services::dynamodb::{dynamodb, TABLE_NAME};
 use ::lib::types::slack::Response;
 use anyhow::{anyhow, Context, Result};
 use aws_lambda_events::event::apigw::ApiGatewayProxyRequest;
@@ -59,8 +59,6 @@ fn parse_slack_payload(body: &str) -> Result<Response> {
 }
 
 async fn handler(event: ApiGatewayProxyRequest, _: lambda_runtime::Context) -> Result<()> {
-    dbg!(event.clone());
-
     let request_timestamp = event
         .headers
         .get("x-slack-request-timestamp")
@@ -104,7 +102,7 @@ async fn handler(event: ApiGatewayProxyRequest, _: lambda_runtime::Context) -> R
 
     let response = dynamodb
         .update_item()
-        .table_name("autotracker-actions")
+        .table_name(TABLE_NAME)
         .key(
             "pk",
             AttributeValue::S(format!("timestamp|{}", now.date().to_string().as_str())),

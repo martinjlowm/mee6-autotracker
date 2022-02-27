@@ -81,6 +81,8 @@ lazy_static! {
 }
 
 async fn handler(event: Event, _: lambda_runtime::Context) -> Result<()> {
+    dbg!(event.clone());
+
     let removed_items: Vec<HashMap<_,_>> = event.records.into_iter().filter_map(|record| {
         if !record.event_name.eq_ignore_ascii_case("REMOVE") {
             return None;

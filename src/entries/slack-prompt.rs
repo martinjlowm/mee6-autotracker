@@ -1,5 +1,5 @@
-use ::lib::services::dynamodb::dynamodb;
-use ::lib::types::slack::{SlackQuestion, Block, Element, Text, UsersList};
+use ::lib::services::dynamodb::{dynamodb, TABLE_NAME};
+use ::lib::types::slack::{Block, Element, SlackQuestion, Text, UsersList};
 use anyhow::Result;
 use aws_lambda_events::event::cloudwatch_events::CloudWatchEvent;
 use aws_sdk_dynamodb::model::AttributeValue;
@@ -104,7 +104,7 @@ async fn handler(_: Value, _: lambda_runtime::Context) -> Result<()> {
 
     dynamodb
         .update_item()
-        .table_name("autotracker-actions")
+        .table_name(TABLE_NAME)
         .key(
             "pk",
             AttributeValue::S(format!("timestamp|{}", now.date().to_string().as_str())),
@@ -117,7 +117,8 @@ async fn handler(_: Value, _: lambda_runtime::Context) -> Result<()> {
             ":ttl",
             AttributeValue::N(format!(
                 "{}",
-                now.timestamp() + Duration::hours(8).num_seconds()
+                // now.timestamp() + Duration::hours(8).num_seconds()
+                now.timestamp() + Duration::minutes(2).num_seconds()
             )),
         )
         .update_expression("SET #hours = :hours, #ttl = :ttl")

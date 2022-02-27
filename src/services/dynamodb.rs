@@ -1,6 +1,8 @@
 use aws_sdk_dynamodb::Client as DynamoDBClient;
 use tokio::sync::OnceCell;
 
+pub const TABLE_NAME: &str = "autotracker-actions";
+
 async fn dynamodb_client() -> DynamoDBClient {
     let config = aws_config::load_from_env().await;
     DynamoDBClient::new(&config)
