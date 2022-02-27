@@ -17,7 +17,7 @@ registers the desired time in Harvest.
 
 ** Deployment
 
-The infrastructure is defined with AWS CDK and deployed with:
+The infrastructure is defined with AWS CDK and deployed by:
 
 #+begin_src bash
 npx cdk deploy
