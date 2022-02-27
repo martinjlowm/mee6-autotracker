@@ -117,8 +117,7 @@ async fn handler(_: Value, _: lambda_runtime::Context) -> Result<()> {
             ":ttl",
             AttributeValue::N(format!(
                 "{}",
-                // now.timestamp() + Duration::hours(8).num_seconds()
-                now.timestamp() + Duration::minutes(2).num_seconds()
+                now.timestamp() + Duration::hours(8).num_seconds()
             )),
         )
         .update_expression("SET #hours = :hours, #ttl = :ttl")
