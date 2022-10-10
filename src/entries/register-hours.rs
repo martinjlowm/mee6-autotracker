@@ -89,6 +89,13 @@ async fn register_hours(
         .json()
         .await?;
 
+    if response.is_running {
+        HARVEST
+            .patch(format!("https://api.harvestapp.com/v2/time_entries/{}/stop", response.id))
+            .send()
+            .await?;
+    }
+
     log::info!("Created time entry w. {:?}", response);
 
     Ok(())

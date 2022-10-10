@@ -93,4 +93,5 @@ pub struct CreateEntryResponse {
     pub id: i64,
     pub spent_date: String,
     pub hours: f64,
+    pub is_running: bool,
 }
